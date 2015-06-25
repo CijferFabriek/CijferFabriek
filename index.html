@@ -64,17 +64,7 @@ cfElements.expectBehaald = function() {
 cfElements.requireTotaal();
 
 cfElements.buttonTotaal.addEventListener('click', function() {
-    switch(cfElements.state)
-    {
-        case "requireTotaal":
-        cfElements.requireTotaal();
-        break;
-        case "expectBehaald":
-        cfElements.expectBehaald();
-        break;
-        default:
-        console.log("Unexpected state encountered: " + cfElements.state);
-    }
+    cfElements[cfElements.state]();
 });
 })();
 </script>
