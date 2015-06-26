@@ -1,47 +1,79 @@
 <!doctype html>
 <html>
 <head>
-
+    <title>Cijfer fabriek</title>
+    <style type="text/css">
+        .invalid { border: 3px solid red; }
+    </style>
 </head>
 <body>
-<h1>Cijfer fabriek</h1>
-<select>
-    <option value="50">50% goed is een 6</option>
-    <option value="60" selected="selected">60% goed is een 6</option>
-    <option value="70">70% goed is een 6</option>
-    <option value="80">80% goed is een 6</option>
-</select>
+<fieldset id="normeringen">
+    <p>Kies normering(en):
+        <button id="button-normeringen">Verberg overige normeringen</button>
+        <select id="select-afronden">
+            <option value="0">Afronden op heel getal</option>
+            <option value="1" selected="selected">Afronden op 1 decimaal</option>
+            <option value="2">Afronden op 2 decimalen</option>
+            <option value="3">Afronden op 3 decimalen</option>
+            <option value="4">Afronden op 4 decimalen</option>
+            <option value="9">Afronden op 9 decimalen</option>
+        </select>
+    </p>
+    <p>
+        50% goed is een 6 <input class="normering" type="checkbox" name="normering" value="0.5"/>
+        cijfer: <input class="cijfer" type="text" readonly="readonly"/>
+    </p>
+
+    <p>
+        60% goed is een 6 <input class="normering" type="checkbox" name="normering" value="0.6" checked="checked"/>
+        cijfer: <input class="cijfer" type="text" readonly="readonly"/>
+    </p>
+
+    <p>
+        70% goed is een 6 <input class="normering" type="checkbox" name="normering" value="0.7"/>
+        cijfer: <input class="cijfer" type="text" readonly="readonly"/>
+    </p>
+
+    <p>
+        80% goed is een 6 <input class="normering" type="checkbox" name="normering" value="0.8"/>
+        cijfer: <input class="cijfer" type="text" readonly="readonly"/>
+    </p>
+</fieldset>
+
 <p>
-    <div>
-        <img id="pijl-totaal" src="pijl.png" alt="pijl" />
-        Totaal aantal punten
-    </div>
-    <input id="input-totaal" placeholder="55" type="number" min="0" />
-    <button id="button-totaal">Bevestig</button>
+
+<div>
+    <img id="pijl-totaal" src="pijl.png" alt="pijl"/>
+    Totaal aantal punten
+</div>
+<input id="input-totaal" type="text" title="Positief getal (bijvoorbeeld: 10 of 30.5)"/>
+<button id="button-totaal">Bevestig</button>
 </p>
 
 
 <p>
-    <div>
-        <img id="pijl-behaald" src="pijl.png" alt="pijl" />
-        Behaald aantal punten
-    </div>
-    <input id="input-behaald" value="0" type="number" min="0" />
+
+<div>
+    <img id="pijl-behaald" src="pijl.png" alt="pijl"/>
+    Aantaal behaalde punten
+</div>
+<input id="input-behaald" type="text" title="Positief getal (bijvoorbeeld: 10 of 30.5)"/>
 </p>
 
-
-<p>
-    Cijfer: <input value="1" type="number" min="1" max="10" readonly="readonly" />
-</p>
 <script type="text/javascript">
 (function() {
+
 var cfElements = new Object();
 cfElements.state = "undefined";
+cfElements.normeringenState = "undefined";
 cfElements.pijlTotaal = document.getElementById('pijl-totaal');
 cfElements.buttonTotaal = document.getElementById('button-totaal');
 cfElements.inputTotaal = document.getElementById('input-totaal');
 cfElements.pijlBehaald = document.getElementById('pijl-behaald');
 cfElements.inputBehaald = document.getElementById('input-behaald');
+cfElements.buttonNormeringen = document.getElementById('button-normeringen');
+cfElements.selectAfronden = document.getElementById('select-afronden');
+cfElements.normeringen = document.getElementById('normeringen').getElementsByClassName('normering');
 
 cfElements.requireTotaal = function() {
     this.state = "expectBehaald";
@@ -61,12 +93,118 @@ cfElements.expectBehaald = function() {
     this.inputBehaald.removeAttribute("readonly");
 };
 
+cfElements.verbergNormeringen = function() {
+    cfElements.normeringenState = "toonNormeringen";
+    cfElements.buttonNormeringen.innerHTML = "Toon alle normeringen";
+    for(var i = 0; i < cfElements.normeringen.length; i++) {
+        var normeringNode = cfElements.normeringen[i];
+        if(!normeringNode.checked) {
+            normeringNode.parentNode.style.display = "none";
+        }
+    }
+};
+
+cfElements.toonNormeringen = function() {
+    cfElements.normeringenState = "verbergNormeringen";
+    cfElements.buttonNormeringen.innerHTML = "Verberg overige normeringen";
+    for(var i = 0; i < cfElements.normeringen.length; i++) {
+        var normeringNode = cfElements.normeringen[i];
+        normeringNode.parentNode.style.display = "block";
+    }
+};
+
+cfElements.toonNormeringen();
+
+cfElements.buttonNormeringen.addEventListener('click', function() {
+    cfElements[cfElements.normeringenState]();
+});
+
+cfElements.selectAfronden.addEventListener('change', function() {
+    calculateCijfer();
+});
+
+
 cfElements.requireTotaal();
 
 cfElements.buttonTotaal.addEventListener('click', function() {
     cfElements[cfElements.state]();
+    var isValid = validateTotaal();
+    if(!isValid) {
+        cfElements.requireTotaal();
+    }
 });
+
+var setValid = function(targetElement, isValid) {
+    if(!isValid) {
+        targetElement.setAttribute("class", "invalid");
+        for(var i = 0; i < cfElements.normeringen.length; i++) {
+            var normeringNode = cfElements.normeringen[i];
+            normeringNode.parentNode.getElementsByClassName("cijfer")[0].value = "X";
+        }
+    } else {
+        targetElement.removeAttribute("class");
+    }
+};
+
+var validate = function (element, pattern) {
+    var isValid = pattern.test(element.value);
+    setValid(element, isValid);
+    return isValid;
+}
+
+var validateTotaal = function() {
+    var isTotaalValid = validate(cfElements.inputTotaal, /^([1-9]{1}[0-9]*)([,|\.][0-9]+)?$/i);
+    if(isTotaalValid && !isBehaaldValid()) {
+        setValid(cfElements.inputBehaald, false);
+    }
+    return isTotaalValid;
+};
+
+cfElements.inputTotaal.addEventListener('keyup', validateTotaal);
+
+var isBehaaldValid = function() {
+    var isValid = validate(cfElements.inputBehaald, /^([0-9]{1}[0-9]*)([,|\.][0-9]+)?$/i);
+    if(!isValid) {
+        return false;
+    }
+    var puntenTotaal = parseFloat(cfElements.inputTotaal.value);
+    var puntenBehaald = parseFloat(cfElements.inputBehaald.value);
+    return puntenBehaald <= puntenTotaal;
+};
+
+cfElements.inputBehaald.addEventListener('keyup', function(event) {
+    if(!isBehaaldValid()) {
+        setValid(cfElements.inputBehaald, false);
+    } else {
+        calculateCijfer();
+    }
+});
+
+var calculateCijfer = function() {
+    var puntenTotaal = parseFloat(cfElements.inputTotaal.value);
+    var puntenBehaald = parseFloat(cfElements.inputBehaald.value);
+    var selectAfronden = cfElements.selectAfronden;
+    var decimals = parseInt(selectAfronden.options[selectAfronden.selectedIndex].value);
+    for(var i = 0; i < cfElements.normeringen.length; i++) {
+        var normeringNode = cfElements.normeringen[i];
+        var lowerNormering = parseFloat(normeringNode.value);
+        var upperNormering = 1 - lowerNormering;
+        var pa = puntenTotaal * lowerNormering;
+        var pb = puntenTotaal * upperNormering;
+        var ln = 6 / pa;
+        var un = 4 / pb;
+        var cijfer = ln * Math.min(pa, puntenBehaald);
+        cijfer += un * Math.max(0, puntenBehaald - pa);
+        cijfer = Math.max(1, cijfer);
+        var cijferNode = normeringNode.parentNode.getElementsByClassName("cijfer")[0];
+        cijferNode.value = cijfer.toFixed(decimals);
+    }
+};
+
 })();
+
+
+
 </script>
 </body>
 </html>
